@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Stock — Tienda</title>
+
+  <!-- Primary meta tags -->
+  <meta name="description" content="Gestor de inventario intuitivo para tu tienda. Añade, edita y controla productos y categorías con integración en tiempo real usando Firebase.">
+  <meta name="keywords" content="gestor de stock, inventario, tienda, productos, Firebase, categorías, web app">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://tu-dominio.com/gestor-stock.html">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://tu-dominio.com/gestor-stock.html">
+  <meta property="og:title" content="Gestor de Stock — Tienda">
+  <meta property="og:description" content="Gestor de inventario intuitivo para tu tienda. Añade, edita y controla productos y categorías con integración en tiempo real.">
+  <meta property="og:image" content="https://tu-dominio.com/og-image.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://tu-dominio.com/gestor-stock.html">
+  <meta name="twitter:title" content="Gestor de Stock — Tienda">
+  <meta name="twitter:description" content="Gestor de inventario intuitivo para tu tienda. Añade, edita y controla productos y categorías con integración en tiempo real.">
+  <meta name="twitter:image" content="https://tu-dominio.com/og-image.png">
+
+  <!-- Icons & manifest -->
+  <!-- emoji favicon – box carton for stock manager -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='48'%3E📦%3C/text%3E%3C/svg%3E">
+  <!-- real favicon could go here; manifest removed since not used -->
+  <meta name="theme-color" content="#2754e6">
+
+  <!-- Fonts & styles -->
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <!-- custom styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="url(#g)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#4f7cff"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs>
+      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+    </svg>
+    Stock Manager
+  </div>
+  <div class="header-meta">
+    <div class="badge-total">Total productos: <span id="total-count">0</span></div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <div class="filter-group">
+      <label>Categoría</label>
+      <select id="filter-cat">
+        <option value="">Todas las categorías</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Buscar producto</label>
+      <input type="text" id="filter-search" placeholder="Nombre del producto…">
+    </div>
+    <div class="filter-group">
+      <label>Stock</label>
+      <select id="filter-stock">
+        <option value="">Todos</option>
+        <option value="low">Bajo (&lt; 10)</option>
+        <option value="mid">Medio (10-50)</option>
+        <option value="high">Alto (&gt; 50)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <section class="table-section">
+    <div class="table-header">
+      <h2>Inventario</h2>
+      <div style="display:flex;gap:.5rem;">
+        <button class="sort-btn" id="sort-name" onclick="toggleSort('name')">Nombre ↕</button>
+        <button class="sort-btn" id="sort-stock" onclick="toggleSort('stock')">Stock ↕</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Imagen</th>
+            <th>Stock</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="product-tbody"></tbody>
+      </table>
+    </div>
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="empty-icon">📦</div>
+      <p>No se encontraron productos</p>
+    </div>
+  </section>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- ADD PRODUCT -->
+    <div class="card">
+      <h3>
+        <span class="icon" style="background:#dbeafe;">➕</span>
+        Añadir producto
+      </h3>
+      <div class="form-field">
+        <label>Categoría</label>
+        <select id="add-cat"></select>
+      </div>
+      <div class="form-field">
+        <label>Nombre</label>
+        <input type="text" id="add-name" placeholder="Nombre del producto">
+      </div>
+      <div class="form-field">
+        <label>URL imagen</label>
+        <input type="url" id="add-img" placeholder="https://…">
+      </div>
+      <div class="form-field">
+        <label>Stock inicial</label>
+        <input type="number" id="add-stock" value="0" min="0">
+      </div>
+      <button class="btn btn-primary" onclick="addProduct()">
+        <span>Agregar producto</span>
+      </button>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="card">
+      <h3>
+        <span class="icon" style="background:#ede9fe;">🏷️</span>
+        Categorías
+      </h3>
+      <div style="font-size:.75rem;color:var(--muted);margin-top:-.3rem;">Haz clic en ✏️ para editar o en × para eliminar</div>
+      <div class="input-row" style="margin-top:.5rem;">
+        <input type="text" id="new-cat-name" placeholder="Nueva categoría">
+        <button class="btn btn-success-full" onclick="addCategory()">+</button>
+      </div>
+      <div class="cat-list" id="cat-list"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="card" id="stats-card">
+      <h3>
+        <span class="icon" style="background:#d1fae5;">📊</span>
+        Resumen
+      </h3>
+      <div id="stats-content"></div>
+    </div>
+
+  </aside>
+
+  <!-- PRINT LOW-STOCK -->
+  <button class="btn-download" onclick="printLowStock()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v4"/><path d="M6 10h12v12H6z"/></svg>
+    Imprimir stock bajo
+  </button>
+
+</main>
+
+<!-- MODAL EDIT -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>✏️ Editar producto</h3>
+    <input type="hidden" id="edit-id">
+    <div class="form-field">
+      <label>Categoría</label>
+      <select id="edit-cat"></select>
+    </div>
+    <div class="form-field">
+      <label>Nombre</label>
+      <input type="text" id="edit-name">
+    </div>
+    <div class="form-field">
+      <label>URL imagen</label>
+      <input type="url" id="edit-img">
+    </div>
+    <div class="form-field">
+      <label>Stock</label>
+      <input type="number" id="edit-stock" min="0">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-edit" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-success-full" onclick="saveEdit()" style="flex:1;justify-content:center;">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DELETE CONFIRM -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal">
+    <h3>🗑️ Eliminar producto</h3>
+    <p style="color:var(--muted);font-size:.9rem;">¿Seguro que quieres eliminar <strong id="delete-name" style="color:var(--text)"></strong>? Esta acción no se puede deshacer.</p>
+    <input type="hidden" id="delete-id">
+    <div class="modal-actions">
+      <button class="btn btn-edit" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger-full" onclick="confirmDelete()" style="flex:1;justify-content:center;">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT CATEGORY -->
+<div class="modal-overlay" id="edit-category-modal">
+  <div class="modal">
+    <h3>✏️ Editar categoría</h3>
+    <input type="hidden" id="edit-cat-old">
+    <div class="form-field">
+      <label>Nombre</label>
+      <input type="text" id="edit-cat-name">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-edit" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-success-full" onclick="saveCategoryEdit()" style="flex:1;justify-content:center;">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DELETE CATEGORY -->
+<div class="modal-overlay" id="delete-cat-modal">
+  <div class="modal">
+    <h3>🗑️ Eliminar categoría</h3>
+    <p style="color:var(--muted);font-size:.9rem;">¿Seguro que quieres borrar la categoría <strong id="delete-cat-name" style="color:var(--text)"></strong>? Esta acción eliminará la categoría e intentará actualizar productos.</p>
+    <input type="hidden" id="delete-cat-old">
+    <div class="modal-actions">
+      <button class="btn btn-edit" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger-full" onclick="confirmDeleteCategory()" style="flex:1;justify-content:center;">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INFO -->
+<div class="modal-overlay" id="info-modal">
+  <div class="modal" style="max-height:85vh;display:flex;flex-direction:column;">
+    <h3 id="info-modal-title" style="flex-shrink:0;"></h3>
+    <div id="info-modal-body" style="overflow-y:auto;flex:1;padding-right:.25rem;"></div>
+    <div style="flex-shrink:0;margin-top:1.25rem;">
+      <button class="btn btn-edit" onclick="closeModal()" style="width:100%;justify-content:center;padding:.65rem;">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<!-- GLOBAL IMAGE TOOLTIP -->
+<div id="global-img-tooltip"><div class="img-tooltip-inner"></div></div>
+
+<!-- scripts -->
+<!-- jsPDF (for direct PDF generation) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script type="module" src="script.js"></script>
+
+</body>
+</html>
