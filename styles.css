@@ -196,6 +196,8 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .table-header {
@@ -219,6 +221,27 @@
 
   .sort-btn:hover { background: var(--surface2); color: var(--text); }
   .sort-btn.active { color: var(--accent); background: #dbeafe; }
+
+  /* scroll container grows to fill the remaining space */
+  .table-section .table-scroll {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+
+  /* keep header visible while scrolling */
+  .table-section .table-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  /* cap height on very short viewports to avoid enormous scrolling areas */
+  @media (max-height: 500px) {
+    .table-section .table-scroll {
+      max-height: 60vh;
+    }
+  }
 
   table { width: 100%; border-collapse: collapse; }
 
