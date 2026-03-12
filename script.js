@@ -649,6 +649,26 @@ document.addEventListener('mousemove', e => {
   gTooltip.style.top  = y + 'px';
 });
 
+// adjust scrollable table height so body reaches bottom of sidebar
+function adjustTableHeight() {
+  const sidebar = document.querySelector('.sidebar');
+  const scrollEl = document.querySelector('.table-section .table-scroll');
+  const header = document.querySelector('.table-header');
+  if (!sidebar || !scrollEl) return;
+  const sideH = sidebar.getBoundingClientRect().height;
+  const headH = header ? header.getBoundingClientRect().height : 0;
+  // on desktop leave a bit of breathing room so table isn't too tall
+  let extra = 2; // minimal gap by default
+  if (window.innerWidth >= 800) {
+    extra += 100; // subtract extra 100px on larger screens
+  }
+  scrollEl.style.maxHeight = (sideH - headH - extra) + 'px';
+}
+
+window.addEventListener('load', adjustTableHeight);
+window.addEventListener('resize', adjustTableHeight);
+
+
 // ──────────────────────────────
 //  INIT
 // ──────────────────────────────
