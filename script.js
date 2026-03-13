@@ -1,5 +1,5 @@
 // Trunca un texto a n caracteres y añade '...'
-function truncateText(str, n = 18) {
+function truncateText(str, n = 15) {
   if (!str) return '';
   return str.length > n ? str.slice(0, n) + '...' : str;
 }
@@ -731,3 +731,4 @@ window.statAction = statAction;
 window.filterByCategory = filterByCategory;
 window.printLowStock = printLowStock;
 window.openDeleteCategoryFromEdit = openDeleteCategoryFromEdit;
+
