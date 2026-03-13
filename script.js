@@ -1,3 +1,21 @@
+// Trunca un texto a n caracteres y añade '...'
+function truncateText(str, n = 18) {
+  if (!str) return '';
+  return str.length > n ? str.slice(0, n) + '...' : str;
+}
+// Permite borrar desde el modal de editar producto
+function openDeleteFromEdit() {
+  const id = document.getElementById('edit-id').value;
+  closeModal();
+  setTimeout(() => openDelete(id), 200);
+}
+
+// Permite borrar categoría desde el modal de editar categoría
+function openDeleteCategoryFromEdit() {
+  const name = document.getElementById('edit-cat-old').value;
+  closeModal();
+  setTimeout(() => openDeleteCategory(name), 200);
+}
 import { db } from './firebase.js';
 import { collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
@@ -74,17 +92,16 @@ function renderCategories() {
     if (val) el.value = val;
   });
 
-  // render categories as a vertical list with edit/delete controls
+  // render categories as a vertical list with edit controls only
   const list = document.getElementById('cat-list');
   list.innerHTML = '';
   sorted.forEach(c => {
     const div = document.createElement('div');
     div.className = 'cat-item';
     div.innerHTML = `
-      <span class="cat-name">${prettifyCategory(c)}</span>
+      <span class="cat-name">${truncateText(prettifyCategory(c))}</span>
       <div class="cat-actions">
         <button class="btn btn-edit" onclick="openEditCategory('${c}')">✏️ Editar</button>
-        <button class="btn btn-delete" onclick="openDeleteCategory('${c}')">🗑️ Eliminar</button>
       </div>
     `;
     list.appendChild(div);
@@ -150,8 +167,8 @@ function renderTable() {
     return `
     <tr style="animation-delay:${i*40}ms">
       <td>
-        <div class="product-name">${p.name}</div>
-        <div class="product-cat">${prettifyCategory(p.category)}</div>
+        <div class="product-name">${truncateText(p.name)}</div>
+        <div class="product-cat">${truncateText(prettifyCategory(p.category))}</div>
       </td>
       <td>
         <div class="img-preview-wrap" data-img="${p.img || ''}" data-name="${p.name}">
@@ -167,7 +184,6 @@ function renderTable() {
       <td>
         <div class="actions-cell">
           <button class="btn btn-edit" onclick="openEdit('${p.id}')">✏️ Editar</button>
-          <button class="btn btn-delete" onclick="openDelete('${p.id}')">🗑️</button>
         </div>
       </td>
     </tr>`;
@@ -210,28 +226,35 @@ function renderStats() {
 
 function statAction(type) {
   if (type === 'low') {
-    const panel = document.getElementById('low-stock-panel');
-    if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
     const lowProducts = products.filter(p => p.stock < 10);
     if (lowProducts.length === 0) { toast('¡No hay productos con stock bajo! 🎉', 'success'); return; }
-    panel.style.display = 'block';
-    panel.innerHTML = `
-      <div style="font-family:'Syne',sans-serif;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;">
-        ⚠️ Productos con stock bajo
+    // Top 4 productos con menos stock
+    const topLow = [...lowProducts].sort((a,b) => a.stock - b.stock).slice(0, 4);
+    openInfoModal('⚠️ Stock bajo', `
+      <p style=\"color:var(--muted);font-size:.88rem;margin-bottom:1.2rem;\">${lowProducts.length} producto${lowProducts.length!==1?'s':''} con stock bajo · top por menor stock</p>
+      <div style=\"display:flex;flex-direction:column;gap:.5rem;\">
+        ${topLow.map((p, i) => {
+          const medals = ['🥇','🥈','🥉','4️⃣'];
+          const sc = '#9f1239';
+          const imgContent = p.img
+            ? `<img src=\"${p.img}\" style=\"width:36px;height:36px;border-radius:8px;object-fit:cover;border:1px solid var(--border);\">`
+            : `<div style=\"width:36px;height:36px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;\">📦</div>`;
+          return `<div onclick=\"openEdit('${p.id}')\" style=\"display:flex;align-items:center;gap:.75rem;padding:.6rem .85rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:background .15s;\" onmouseover=\"this.style.background='#ffe4e6'\" onmouseout=\"this.style.background='var(--surface2)'\">
+            <span style=\"font-size:1.1rem;width:20px;text-align:center;\">${medals[i]||''}</span>
+            ${imgContent}
+            <div style=\"flex:1;min-width:0;\">
+              <div style=\"font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\">${truncateText(p.name)}</div>
+              <div style=\"font-size:.73rem;color:var(--muted);font-family:'Syne',sans-serif;\">${truncateText(prettifyCategory(p.category))}</div>
+            </div>
+            <strong style=\"color:${sc};font-family:'Syne',sans-serif;\">${p.stock}</strong>
+          </div>`;
+        }).join('')}
       </div>
-      ${lowProducts.map(p => {
-        const imgContent = p.img
-          ? `<img src="${p.img}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;border:1px solid var(--border);" onerror="this.style.display='none'">`
-          : `<div style="width:32px;height:32px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.9rem;">📦</div>`;
-        return `<div class="low-stock-row" onclick="openEdit('${p.id}')">${imgContent}
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
-            <div style="font-size:.72rem;color:var(--muted);font-family:'Syne',sans-serif;">${prettifyCategory(p.category)}</div>
-          </div>
-          <span style="background:#ffe4e6;color:#9f1239;border:1px solid #fca5a5;border-radius:999px;padding:.2rem .6rem;font-size:.8rem;font-weight:700;font-family:'Syne',sans-serif;white-space:nowrap;">${p.stock} uds</span>
-        </div>`;
-      }).join('')}`;
-    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      <div style=\"border-top:1px solid var(--border);margin-top:.7rem;padding-top:.7rem;display:flex;justify-content:space-between;align-items:center;\">
+        <span style=\"font-family:'Syne',sans-serif;font-size:.82rem;color:var(--muted);\">TOTAL STOCK BAJO</span>
+        <strong style=\"font-size:1.1rem;color:#c8172f;\">${lowProducts.length} producto${lowProducts.length!==1?'s':''}</strong>
+      </div>
+    `);
     return;
   }
 
@@ -268,26 +291,34 @@ function statAction(type) {
   }
 
   if (type === 'cats') {
-    // Show categories with product count and total stock per cat
+    // Ranking de las 4 categorías con más productos
     const data = categories.map(c => {
       const prods = products.filter(p => p.category === c);
       return { cat: c, count: prods.length, units: prods.reduce((a,b)=>a+b.stock,0) };
     }).sort((a,b) => b.count - a.count);
+    const topCats = data.slice(0, 4);
     openInfoModal('🏷️ Categorías', `
-      <p style="color:var(--muted);font-size:.88rem;margin-bottom:1.2rem;">${categories.length} categorías · haz clic para filtrar por categoría</p>
-      <div style="display:flex;flex-direction:column;gap:.5rem;">
-        ${data.map(d => `
-          <div onclick="filterByCategory('${d.cat}')" style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='var(--surface2)'">
-            <div style="width:36px;height:36px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:1rem;">🏷️</div>
-            <div style="flex:1;">
-              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;text-transform:capitalize;">${d.cat}</div>
-              <div style="font-size:.75rem;color:var(--muted);">${d.count} producto${d.count!==1?'s':''}</div>
+      <p style=\"color:var(--muted);font-size:.88rem;margin-bottom:1.2rem;\">${categories.length} categoría${categories.length!==1?'s':''} · top por número de productos</p>
+      <div style=\"display:flex;flex-direction:column;gap:.5rem;\">
+        ${topCats.map((d, i) => {
+          const medals = ['🥇','🥈','🥉','4️⃣'];
+          return `<div onclick=\"filterByCategory('${d.cat}')\" style=\"display:flex;align-items:center;gap:.75rem;padding:.6rem .85rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:background .15s;\" onmouseover=\"this.style.background='#dbeafe'\" onmouseout=\"this.style.background='var(--surface2)'\">
+            <span style=\"font-size:1.1rem;width:20px;text-align:center;\">${medals[i]||''}</span>
+            <div style=\"width:36px;height:36px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:1rem;\">🏷️</div>
+            <div style=\"flex:1;\">
+              <div style=\"font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;\">${truncateText(d.cat)}</div>
+              <div style=\"font-size:.75rem;color:var(--muted);\">${d.count} producto${d.count!==1?'s':''}</div>
             </div>
-            <div style="text-align:right;">
-              <div style="font-weight:700;font-size:.88rem;">${d.units}</div>
-              <div style="font-size:.72rem;color:var(--muted);">uds</div>
+            <div style=\"text-align:right;\">
+              <div style=\"font-weight:700;font-size:.88rem;\">${d.units}</div>
+              <div style=\"font-size:.72rem;color:var(--muted);\">uds</div>
             </div>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
+      </div>
+      <div style=\"border-top:1px solid var(--border);margin-top:.7rem;padding-top:.7rem;display:flex;justify-content:space-between;align-items:center;\">
+        <span style=\"font-family:'Syne',sans-serif;font-size:.82rem;color:var(--muted);\">TOTAL CATEGORÍAS</span>
+        <strong style=\"font-size:1.1rem;color:#7c3aed;\">${categories.length} categoría${categories.length!==1?'s':''}</strong>
       </div>
     `);
     return;
@@ -311,8 +342,8 @@ function statAction(type) {
             <span style="font-size:1.1rem;width:20px;text-align:center;">${medals[i]}</span>
             ${imgContent}
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
-              <div style="font-size:.73rem;color:var(--muted);font-family:'Syne',sans-serif;">${prettifyCategory(p.category)}</div>
+              <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${truncateText(p.name)}</div>
+              <div style="font-size:.73rem;color:var(--muted);font-family:'Syne',sans-serif;">${truncateText(prettifyCategory(p.category))}</div>
             </div>
             <strong style="color:${sc};font-family:'Syne',sans-serif;">${p.stock}</strong>
           </div>`;
@@ -655,18 +686,22 @@ function adjustTableHeight() {
   const scrollEl = document.querySelector('.table-section .table-scroll');
   const header = document.querySelector('.table-header');
   if (!sidebar || !scrollEl) return;
-  const sideH = sidebar.getBoundingClientRect().height;
-  const headH = header ? header.getBoundingClientRect().height : 0;
-  // on desktop leave a bit of breathing room so table isn't too tall
-  let extra = 2; // minimal gap by default
-  if (window.innerWidth >= 800) {
-    extra += 100; // subtract extra 100px on larger screens
-  }
+  const sideH = sidebar.offsetHeight;
+  const headH = header ? header.offsetHeight : 0;
+  // Elimina el "extra" para que la tabla siempre llegue abajo
+  let extra = 0;
   scrollEl.style.maxHeight = (sideH - headH - extra) + 'px';
+  // Si por algún motivo queda negativo, quita el límite
+  if ((sideH - headH - extra) < 100) scrollEl.style.maxHeight = '';
 }
 
+
+// Ajustar alto de la tabla en más eventos para evitar el bug del scroll
 window.addEventListener('load', adjustTableHeight);
 window.addEventListener('resize', adjustTableHeight);
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(adjustTableHeight);
+}
 
 
 // ──────────────────────────────
@@ -695,3 +730,4 @@ window.saveCategoryEdit = saveCategoryEdit;
 window.statAction = statAction;
 window.filterByCategory = filterByCategory;
 window.printLowStock = printLowStock;
+window.openDeleteCategoryFromEdit = openDeleteCategoryFromEdit;
