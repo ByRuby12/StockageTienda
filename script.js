@@ -129,6 +129,13 @@ function getFiltered() {
       return 0;
     });
   }
+
+  // Si no se selecciona categoría ("Todas las categorías"), limitar a 10 para mejor performance
+  if (!cat) {
+    const MAX_VISIBLE_PRODUCTS = 10;
+    list = list.slice(0, MAX_VISIBLE_PRODUCTS);
+  }
+
   return list;
 }
 
