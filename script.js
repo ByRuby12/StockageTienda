@@ -737,5 +737,6 @@ window.saveCategoryEdit = saveCategoryEdit;
 window.statAction = statAction;
 window.filterByCategory = filterByCategory;
 window.printLowStock = printLowStock;
+window.openDeleteFromEdit = openDeleteFromEdit;
 window.openDeleteCategoryFromEdit = openDeleteCategoryFromEdit;
 
